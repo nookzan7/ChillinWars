@@ -1,0 +1,89 @@
+# -*- coding: utf-8 -*-
+
+# python imports
+import random
+
+
+
+# chillin imports
+from chillin_client import RealtimeAI
+
+# project imports
+from ks.models import World
+from ks.commands import Move, Turn, Fire
+import random
+
+
+class AI(RealtimeAI):
+
+    def __init__(self, world):
+        super(AI, self).__init__(world)
+
+
+    def initialize(self):
+        pass
+
+
+    def decide(self):
+        # print('decide')
+        for medic in self.world.medics[self.my_side]:
+            if medic.laser_count>0 :
+                for e_medic in self.world.medics[self.other_side]:
+                    if self.distance(e_medic.position, medic.position)<medic.laser_range :
+                        self.fire(medic_id=medic.id, clockwise=True, angle=medic.max_fire_angle)
+
+
+    def move(self, medic_id, distance):
+        self.send_command(Move(medic_id, distance))
+
+
+    def turn(self, medic_id, clockwise, angle):
+        self.send_command(Turn(medic_id, clockwise, angle))
+
+
+    def fire(self, medic_id, clockwise, angle):
+        self.send_command(Fire(medic_id, clockwise, angle))
+    def distance (self,p1,p2):
+        return((p1.x-p2.x)**2 + (p1.y-p2.y)**2)**0.5
+    def medic_dis_patient(self,medic_list):
+        # find distance toward patient for number of medic you want
+        dis = {}  # a map between medic id and its distance relevant to patients
+        for medic in self.world.medics[self.my_side]:
+            dis[medic.id] = []
+            for patient in self.world.patients:
+                dis[medic.id].append(self.distance(medic.position, patient.position))
+        return dis
+    def check_wall(self,p1,p2):
+        #todo check wheter there is a wall between this two point
+    def medic_dis_enemy(self,medic_list):
+        #find distance toward enemy for number of medic you want
+        dis={}#a map between medic id and its distance toward enemyies
+        for medic in medic_list:
+            dis[medic.id]=[]
+            for enemy in self.world.medics[self.other_side]:
+                dis[medic.id].append(self.distance(medic.position,enemy.position))
+        return dis
+    def run_and_treat(self,medic):
+        l=[]
+        l.append(medic)
+        dis={}
+        dis=self.medic_dis_patient(l)
+        medic_list=sorted(dis[medic.id])#todo check wheter its reasonable to go toward that patient basef on condition below
+        #if(medic.time_to_reload+lag>time it takes to go toward that patient+heal time)
+        #check_wall()
+        return medic_list[0]#return the nearest patinent
+        #todo move toward nearest patient
+    def run_and_gun(self,medic):
+        #todo move toward nearest enemy
+        l=[]
+        l.append(medic)
+        dis={}
+        dis=self.medic_dis_enemy(l)
+        enemy_list=sorted(dis[medic.id])#todo check wheter its reasonable to go toward that patient basef on condition below
+        #laser_count>0
+        #cover_based?!-->wall
+        return enemy_list[0]
+
+
+
+
